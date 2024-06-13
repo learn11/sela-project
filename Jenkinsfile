@@ -21,7 +21,7 @@ spec:
     }
 
     environment {
-        APP_DIR = 'fastapi_app'
+        APP_DIR = 'fast_api'
     }
 
     stages {
