@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Route, Routes }
 import Home from './pages/home';
 import About from './pages/about';
 import Edmon from './pages/input';
-import Stock from './pages/stocke';
+import Stock from './pages/stocks';
 import Navbar from './components/UI/navbar/navbar';
 
 

@@ -9,7 +9,7 @@ const Navbar = () => {
 
   return (
     <nav className={cl.nav}>
-      <Link to="/home" className={cl.nav__link}>
+      <Link to="/" className={cl.nav__link}>
         <i className={[cl.nav__icon, "material-icons"].join(' ')}>dashboard</i>
         <span className={cl.nav__text}>home</span>
       </Link>
