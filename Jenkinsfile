@@ -7,7 +7,7 @@ pipeline {
 apiVersion: v1
 kind: Pod
 spec:
-  serviceAccountName: jenkins-sa
+  serviceAccountName: jenkins-0
   containers:
   - name: custom
     image: edmon/inbound-agent-root:latest
