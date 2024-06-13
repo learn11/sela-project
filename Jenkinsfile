@@ -1,128 +1,61 @@
 pipeline {
     agent {
         kubernetes {
-            label 'jenkins-slave-pipeline-a'
-            defaultContainer 'custom'
             yaml """
 apiVersion: v1
 kind: Pod
 spec:
-  serviceAccountName: jenkins-sa
+  serviceAccountName: jenkins
   containers:
-  - name: custom
-    image: edmon/inbound-agent-root:latest
+  - name: python
+    image: python:3.9
     command:
     - cat
     tty: true
+  - name: mongo
+    image: mongo:4.2
+    ports:
+    - containerPort: 27017
 """
         }
     }
 
     environment {
-        GITHUB_TOKEN = credentialsId: 'github'
-        GITHUB_USER = 'edmonp173'
-        REPO = 'learn11/sela-project'
+        APP_DIR = 'fastapi_app'
     }
 
     stages {
-        stage('Setup Git') {
+        stage('Clone Repository') {
             steps {
-                catchError {
-                    container('custom') {
-                        sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/sela-project'
+                container('python') {
+                    git url: 'https://github.com/learn11/sela-project.git', branch: 'main'
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                container('python') {
+                    dir("${env.APP_DIR}") {
+                        sh 'pip install -r requirements.txt'
                     }
                 }
             }
         }
 
-        stage('Clone and Switch to Feature Branch') {
+        stage('Run Tests') {
             steps {
-                catchError {
-                    container('custom') {
-                        sh '''
-                            cd /home/jenkins/agent/workspace
-                            git clone https://${GITHUB_TOKEN}@github.com/${REPO}.git
-                            cd Persudoku
-                            git fetch origin
-                            if git rev-parse --quiet --verify feature; then
-                                git checkout feature
-                            else
-                                git checkout -b feature
-                            fi
-                            git checkout main -- .
-                            git add .
-                            git pull origin main
-                            git config --global user.email "edmonp173@gmail.com"
-                            git config --global user.name "edmonp173"
-                            git commit -m "Copy files from main branch to feature branch" || true
-                            git push origin feature
-                        '''
+                container('python') {
+                    dir("${env.APP_DIR}") {
+                        sh 'pytest --junitxml=test-results.xml'
                     }
                 }
             }
         }
 
-        stage('Install Requirements') {
+        stage('Publish Test Results') {
             steps {
-                catchError {
-                    container('custom') {
-                        dir('/home/jenkins/agent/workspace/sela-project') {
-                            sh "pip install -r fast_api/requirements.txt"
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Run Pytest') {
-            steps {
-                catchError {
-                    container('custom') {
-                        dir('/home/jenkins/agent/workspace/sela-project') {
-                            sh "pytest --junitxml=test-results.xml fast-api/config-test.py"
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Manual Approval') {
-            when {
-                beforeAgent true
-                expression { true }
-            }
-            steps {
-                script {
-                    def manualApprovalGranted = input message: 'Approve deployment to main?', ok: 'Approve'
-
-                    if (manualApprovalGranted) {
-                        container('custom') {
-                            dir('/home/jenkins/agent/workspace/sela-project') {
-                                def commitHash = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-                                sh """
-                                curl -X POST \
-                                -u ${GITHUB_USER}:${GITHUB_TOKEN} \
-                                -H 'Content-Type: application/json' \
-                                -d '{"state": "success", "description": "Manual approval granted", "context": "jenkins/manual-approval"}' \
-                                https://api.github.com/repos/${REPO}/statuses/${commitHash}
-                                """
-
-                                sh 'git checkout main'
-                                sh 'git branch -D feature'
-                                sh "git push origin --delete feature"
-                                build job: 'app', parameters: []
-                            }
-                        }
-                    } else {
-                        container('custom') {
-                            dir('/home/jenkins/agent/workspace/sela-project') {
-                                sh 'git checkout feature'
-                                sh 'git reset --hard HEAD~1'
-                                sh 'git push origin feature --force'
-                            }
-                        }
-                    }
-                }
+                junit 'fastapi_app/test-results.xml'
             }
         }
     }
