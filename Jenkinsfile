@@ -19,7 +19,7 @@ spec:
     }
 
     environment {
-        GITHUB_TOKEN = credentialsId: 'github'
+        GITHUB_TOKEN = credentialsId: 'Github'
         GITHUB_USER = 'edmonp173'
         REPO = 'learn11/sela-project'
     }
