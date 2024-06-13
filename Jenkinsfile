@@ -55,7 +55,7 @@ spec:
 
         stage('Publish Test Results') {
             steps {
-                junit 'fastapi_app/test-results.xml'
+                junit 'fast_api/test-results.xml'
             }
         }
     }
