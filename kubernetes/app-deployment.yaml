@@ -103,7 +103,7 @@ spec:
     spec:
       containers:
       - name: react-app
-        image: edmonp173/project_app:react100
+        image: edmonp173/project_app:React
         ports:
         - containerPort: 80
 
@@ -148,7 +148,7 @@ spec:
     spec:
       containers:
       - name: fastapi
-        image: edmonp173/project_app:backend
+        image: edmonp173/project_app:Backend
         ports:
         - containerPort: 8000
 
@@ -187,22 +187,7 @@ spec:
     nodePort: 30003
   selector:
     app.kubernetes.io/name: grafana
----
 
-apiVersion: v1
-kind: Service
-metadata:
-  name: argocd
-  namespace: argocd
-spec:
-  type: NodePort
-  ports:
-  - name: http4
-    port: 3000
-    targetPort: 3000
-    nodePort: 30004
-  selector:
-    app.kubernetes.io/name: argocd
 
 
  

@@ -10,7 +10,7 @@ spec:
   serviceAccountName: jenkins-sa
   containers:
   - name: custom
-    image: roiyki/inbound-agent-root:latest
+    image: edmon/inbound-agent-root:latest
     command:
     - cat
     tty: true
