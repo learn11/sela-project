@@ -1,112 +1,129 @@
 pipeline {
     agent {
         kubernetes {
-            yaml '''
-            apiVersion: v1
-            kind: Pod
-            spec:
-              containers:
-              - name: maven
-                image: maven:alpine
-                command:
-                - cat
-                tty: true
-              - name: mongodb
-                image: mongo:latest
-                env:
-                - name: MONGO_INITDB_ROOT_USERNAME
-                  value: "root"
-                - name: MONGO_INITDB_ROOT_PASSWORD
-                  value: "edmon"
-                - name: MONGO_INITDB_DATABASE
-                  value: "mydb"
-                - name: HOST
-                  value: "localhost"
-              - name: ez-docker-helm-build
-                image: ezezeasy/ez-docker-helm-build:1.41
-                imagePullPolicy: Always
-                securityContext:
-                  privileged: true
-            '''
+            label 'jenkins-slave-pipeline-a'
+            defaultContainer 'custom'
+            yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: jenkins-sa
+  containers:
+  - name: custom
+    image: roiyki/inbound-agent-root:latest
+    command:
+    - cat
+    tty: true
+"""
         }
     }
 
     environment {
-        DOCKER_IMAGE = "edmonp173/project_app"
+        GITHUB_TOKEN = credentialsId: 'github'
+        GITHUB_USER = 'edmonp173'
+        REPO = 'learn11/sela-project'
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Setup Git') {
             steps {
-                checkout scm
+                catchError {
+                    container('custom') {
+                        sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/sela-project'
+                    }
+                }
             }
         }
 
-        stage('Wait for MongoDB') {
+        stage('Clone and Switch to Feature Branch') {
             steps {
-                container('mongodb') {
-                    script {
-                        def maxTries = 30
-                        def waitTime = 10
-                        def mongoRunning = false
-                        for (int i = 0; i < maxTries; i++) {
-                            mongoRunning = sh(script: 'nc -z localhost 27017', returnStatus: true) == 0
-                            if (mongoRunning) {
-                                echo 'MongoDB is running!'
-                                break
-                            }
-                            echo 'Waiting for MongoDB to start...'
-                            sleep waitTime
-                        }
-                        if (!mongoRunning) {
-                            error 'MongoDB did not start in time'
+                catchError {
+                    container('custom') {
+                        sh '''
+                            cd /home/jenkins/agent/workspace
+                            git clone https://${GITHUB_TOKEN}@github.com/${REPO}.git
+                            cd Persudoku
+                            git fetch origin
+                            if git rev-parse --quiet --verify feature; then
+                                git checkout feature
+                            else
+                                git checkout -b feature
+                            fi
+                            git checkout main -- .
+                            git add .
+                            git pull origin main
+                            git config --global user.email "edmonp173@gmail.com"
+                            git config --global user.name "edmonp173"
+                            git commit -m "Copy files from main branch to feature branch" || true
+                            git push origin feature
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Install Requirements') {
+            steps {
+                catchError {
+                    container('custom') {
+                        dir('/home/jenkins/agent/workspace/sela-project') {
+                            sh "pip install -r fast_api/requirements.txt"
                         }
                     }
                 }
             }
         }
 
-        stage('maven version') {
+        stage('Run Pytest') {
             steps {
-                container('maven') {
-                    sh 'mvn -version'
+                catchError {
+                    container('custom') {
+                        dir('/home/jenkins/agent/workspace/sela-project') {
+                            sh "pytest --junitxml=test-results.xml fast-api/config-test.py"
+                        }
+                    }
                 }
             }
         }
 
-        stage('Build and Push Docker Images') {
+        stage('Manual Approval') {
             when {
-                branch 'main'
+                beforeAgent true
+                expression { true }
             }
             steps {
-                container('ez-docker-helm-build') {
-                    script {
-                        withDockerRegistry(credentialsId: 'dockerhub') {
-                            // Build and Push Maven Docker image
-                            sh "docker build -t ${DOCKER_IMAGE}:react1 ./test1"
-                            sh "docker push ${DOCKER_IMAGE}:react1"
+                script {
+                    def manualApprovalGranted = input message: 'Approve deployment to main?', ok: 'Approve'
 
-                            // Build and Push FastAPI Docker image
-                            sh "docker build -t ${DOCKER_IMAGE}:backend ./fast_api"
-                            sh "docker push ${DOCKER_IMAGE}:backend"
+                    if (manualApprovalGranted) {
+                        container('custom') {
+                            dir('/home/jenkins/agent/workspace/sela-project') {
+                                def commitHash = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+                                sh """
+                                curl -X POST \
+                                -u ${GITHUB_USER}:${GITHUB_TOKEN} \
+                                -H 'Content-Type: application/json' \
+                                -d '{"state": "success", "description": "Manual approval granted", "context": "jenkins/manual-approval"}' \
+                                https://api.github.com/repos/${REPO}/statuses/${commitHash}
+                                """
+
+                                sh 'git checkout main'
+                                sh 'git branch -D feature'
+                                sh "git push origin --delete feature"
+                                build job: 'app', parameters: []
+                            }
+                        }
+                    } else {
+                        container('custom') {
+                            dir('/home/jenkins/agent/workspace/sela-project') {
+                                sh 'git checkout feature'
+                                sh 'git reset --hard HEAD~1'
+                                sh 'git push origin feature --force'
+                            }
                         }
                     }
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Pipeline post'
-        }
-        success {
-            echo 'Pipeline succeeded!'
-        }
-        failure {
-            emailext body: 'The build failed. Please check the build logs for details.',
-                     subject: "Build failed: ${env.BUILD_NUMBER}",
-                     to: 'edmonp173@gmail.com'
         }
     }
 }

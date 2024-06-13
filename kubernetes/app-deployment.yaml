@@ -103,7 +103,7 @@ spec:
     spec:
       containers:
       - name: react-app
-        image: edmonp173/project_app:react
+        image: edmonp173/project_app:react100
         ports:
         - containerPort: 80
 
@@ -148,7 +148,7 @@ spec:
     spec:
       containers:
       - name: fastapi
-        image: edmonp173/project_app:backend1
+        image: edmonp173/project_app:backend
         ports:
         - containerPort: 8000
 

@@ -101,7 +101,7 @@ function CustomerTable1({ FetchUrl }) {
                 ) : (
                   <>
                     <button onClick={() => handleEditRow(rowIndex)}>Edit</button>
-                    <button onClick={() => handleDeleteRow(rowIndex)}>Delete</button>
+                    <button class='deletebutton' onClick={() => handleDeleteRow(rowIndex)}>Delete</button>
                   </>
                 )}
               </td>
