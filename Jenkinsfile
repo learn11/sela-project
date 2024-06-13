@@ -41,8 +41,8 @@ spec:
                     container('custom') {
                         sh '''
                             cd /home/jenkins/agent/workspace
-                            git clone https://${GITHUB_TOKEN}@github.com/${REPO}.git
-                            cd Persudoku
+                            git clone https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/${REPO}.git
+                            cd sela-project
                             git fetch origin
                             if git rev-parse --quiet --verify feature; then
                                 git checkout feature
