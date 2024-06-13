@@ -6,7 +6,7 @@ const Stock = () => {
 
     return (
         <div>
-            <h1>your stocks</h1>
+            <h1>Welcome To Stok Page</h1>
             <Table FetchUrl={httpUrl}></Table>
         </div>
     );
