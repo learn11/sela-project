@@ -1,8 +1,7 @@
 from fastapi.testclient import TestClient
 from app import app
 
-# Update TestClient to use 127.0.0.1
-client = TestClient(app, base_url="http://127.0.0.1")
+client = TestClient(app, base_url="http://127.0.0.1:8000")
 
 def test_create_and_delete_customer():
     # Create a customer
@@ -31,10 +30,10 @@ def test_get_customers():
 
 def test_create_and_get_product():
     # Create a product
-    product_data = {"name": "Laptop", "description": "High performance laptop", "price": 1500.0}
-    response = client.post("/product", json=product_data)
+    product_data = {"id": "1", "name": "Laptop", "provider": "ProviderA"}
+    response = client.post("/input_product", json=[product_data])
     assert response.status_code == 200
-    assert response.json() == {"message": "Product created successfully."}
+    assert response.json() == {"message": "Products created successfully."}
     
     # Fetch the created product
     response = client.get("/product")
