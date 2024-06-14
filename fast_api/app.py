@@ -1,105 +1,105 @@
-import pytest
-from fastapi.testclient import TestClient
+
+from fastapi import FastAPI, HTTPException
 from pymongo import MongoClient
-from main import app, MONGO_DB_NAME
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-# Test client for FastAPI
-client = TestClient(app)
+app = FastAPI()
 
-# Configuration for MongoDB (replace with your test configuration if needed)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
+
 MONGO_DB_USERNAME = 'root'
 MONGO_DB_PASSWORD = 'edmon'
 MONGO_DB_HOST = 'mongodb'
 MONGO_DB_PORT = 27017
-MONGO_DB_NAME_TEST = f"{MONGO_DB_NAME}_test"
+MONGO_DB_NAME = 'mydb'
 
-# Connect to the test database
-client_mongo = MongoClient(f"mongodb://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@{MONGO_DB_HOST}")
-db = client_mongo[MONGO_DB_NAME_TEST]
+client = MongoClient(f"mongodb://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@mongodb")
+db = client[MONGO_DB_NAME]
 
-# Fixture to set up and tear down the database
-@pytest.fixture(autouse=True)
-def setup_and_teardown_db():
-    # Set up: Clear the database before each test
-    db.customers.delete_many({})
-    db.products.delete_many({})
+class Customer(BaseModel):
+    name: str
+    mail: str
+    phone: str
 
-    yield
+class Product(BaseModel):
+    id: str
+    name: str
+    provider: str
 
-    # Tear down: Clear the database after each test
-    db.customers.delete_many({})
-    db.products.delete_many({})
+@app.get("/costumers")
+def get_customers():
+    try:
+        customers = list(db.customers.find({}, {"_id": 0}))  # Fetch all customers and exclude the MongoDB _id field
+        return {"table": customers}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to fetch customers")
 
-def test_create_customer():
-    response = client.post("/input", json={"name": "John Doe", "mail": "john.doe@example.com", "phone": "1234567890"})
-    assert response.status_code == 200
-    assert response.json() == {"message": "Customer created successfully."}
+@app.get("/product")
+def get_products():
+    try:
+        products = list(db.products.find({}, {"_id": 0}))  # Fetch all products and exclude the MongoDB _id field
+        return {"table": products}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to fetch products")
 
-    # Verify the customer was inserted in the database
-    customer = db.customers.find_one({"mail": "john.doe@example.com"})
-    assert customer is not None
-    assert customer["name"] == "John Doe"
-    assert customer["phone"] == "1234567890"
+@app.post("/input")
+def create_customer(customer: Customer):
+    try:
+        db.customers.insert_one(customer.dict())
+        return {"message": "Customer created successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error creating customer")
 
-def test_get_customers():
-    # Insert a customer into the database
-    db.customers.insert_one({"name": "John Doe", "mail": "john.doe@example.com", "phone": "1234567890"})
+@app.post("/input_product")
+def create_product(products: list[Product]):
+    try:
+        db.products.insert_many([product.dict() for product in products])
+        return {"message": "Products created successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error creating products")
+    
+@app.post("/delete")
+def delete_customer(customer: Customer):
+    try:
+        db.customers.delete_one(customer.dict())
+        return {"message": "Customer delete successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error delete customer")
+    
+@app.post("/update")
+def update_customer(customer: Customer):
+    try:
+        current_customer = db.customers.find_one({"mail": customer.mail})
+        if not current_customer:
+            raise HTTPException(status_code=404, detail="Customer not found")
 
-    response = client.get("/costumers")
-    assert response.status_code == 200
-    assert response.json() == {
-        "table": [
-            {"name": "John Doe", "mail": "john.doe@example.com", "phone": "1234567890"}
-        ]
-    }
+        # Build the update query based on provided data
+        update_data = {}
+        if customer.name != current_customer.get("name"):
+            update_data["name"] = customer.name
+        if customer.phone != current_customer.get("phone"):
+            update_data["phone"] = customer.phone
+        # If no changes, raise an exception or handle it accordingly
+        if not update_data:
+            return {"message": "No changes detected."}
 
-def test_create_product():
-    response = client.post("/input_product", json=[{"id": "1", "name": "Product 1", "provider": "Provider A"}])
-    assert response.status_code == 200
-    assert response.json() == {"message": "Products created successfully."}
+        result = db.customers.find_one_and_update(
+            {"mail": customer.mail},
+            {"$set": update_data},
+            return_document=True
+        )
 
-    # Verify the product was inserted in the database
-    product = db.products.find_one({"id": "1"})
-    assert product is not None
-    assert product["name"] == "Product 1"
-    assert product["provider"] == "Provider A"
-
-def test_get_products():
-    # Insert a product into the database
-    db.products.insert_one({"id": "1", "name": "Product 1", "provider": "Provider A"})
-
-    response = client.get("/product")
-    assert response.status_code == 200
-    assert response.json() == {
-        "table": [
-            {"id": "1", "name": "Product 1", "provider": "Provider A"}
-        ]
-    }
-
-def test_delete_customer():
-    # Insert a customer into the database
-    db.customers.insert_one({"name": "John Doe", "mail": "john.doe@example.com", "phone": "1234567890"})
-
-    response = client.post("/delete", json={"name": "John Doe", "mail": "john.doe@example.com", "phone": "1234567890"})
-    assert response.status_code == 200
-    assert response.json() == {"message": "Customer delete successfully."}
-
-    # Verify the customer was deleted from the database
-    customer = db.customers.find_one({"mail": "john.doe@example.com"})
-    assert customer is None
-
-def test_update_customer():
-    # Insert a customer into the database
-    db.customers.insert_one({"name": "John Doe", "mail": "john.doe@example.com", "phone": "1234567890"})
-
-    response = client.post("/update", json={"name": "John Doe", "mail": "john.doe@example.com", "phone": "0987654321"})
-    assert response.status_code == 200
-    assert response.json()["message"] == "Customer updated successfully."
-
-    # Verify the customer was updated in the database
-    customer = db.customers.find_one({"mail": "john.doe@example.com"})
-    assert customer is not None
-    assert customer["phone"] == "0987654321"
+        return {"message": "Customer updated successfully.", "updated_customer": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating customer: {e}")
 
 if __name__ == "__main__":
-    pytest.main()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
