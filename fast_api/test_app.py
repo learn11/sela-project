@@ -4,7 +4,7 @@ from app import app
 # Update TestClient to use 127.0.0.1
 client = TestClient(app, base_url="http://127.0.0.1")
 
-def test_create_and_delete_customer(setup_data):
+def test_create_and_delete_customer():
     # Create a customer
     customer_data = {"name": "John", "mail": "john@example.com", "phone": "123456789"}
     response = client.post("/input", json=customer_data)
