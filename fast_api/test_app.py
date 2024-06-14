@@ -1,23 +1,17 @@
 from fastapi.testclient import TestClient
 from app import app
 
-client = TestClient(app)
+# Update TestClient to use 127.0.0.1
+client = TestClient(app, base_url="http://127.0.0.1")
 
-def test_get_customers():
-    response = client.get("/customers")
-    assert response.status_code == 200
-
-def test_get_products():
-    response = client.get("/product")
-    assert response.status_code == 200
-
-def test_create_and_delete_customer():
+def test_create_and_delete_customer(setup_data):
     # Create a customer
-    response = client.post("/input", json={"name": "John", "mail": "john@example.com", "phone": "123456789"})
+    customer_data = {"name": "John", "mail": "john@example.com", "phone": "123456789"}
+    response = client.post("/input", json=customer_data)
     assert response.status_code == 200
     assert response.json() == {"message": "Customer created successfully."}
     
-    # Fetch the created customer's ID (assuming the response has an ID or we can fetch the customer list to get the ID)
+    # Fetch the created customer's ID
     response = client.get("/customers")
     assert response.status_code == 200
     customers = response.json()
@@ -29,3 +23,22 @@ def test_create_and_delete_customer():
     response = client.delete(f"/customers/{customer_id}")
     assert response.status_code == 200
     assert response.json() == {"message": "Customer deleted successfully."}
+
+def test_get_customers(setup_data):
+    response = client.get("/customers")
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+def test_create_and_get_product(setup_data):
+    # Create a product
+    product_data = {"name": "Laptop", "description": "High performance laptop", "price": 1500.0}
+    response = client.post("/product", json=product_data)
+    assert response.status_code == 200
+    assert response.json() == {"message": "Product created successfully."}
+    
+    # Fetch the created product
+    response = client.get("/product")
+    assert response.status_code == 200
+    products = response.json()
+    product = next((p for p in products if p['name'] == "Laptop"), None)
+    assert product is not None
