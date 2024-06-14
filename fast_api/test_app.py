@@ -24,12 +24,12 @@ def test_create_and_delete_customer():
     assert response.status_code == 200
     assert response.json() == {"message": "Customer deleted successfully."}
 
-def test_get_customers(setup_data):
+def test_get_customers():
     response = client.get("/customers")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
-def test_create_and_get_product(setup_data):
+def test_create_and_get_product():
     # Create a product
     product_data = {"name": "Laptop", "description": "High performance laptop", "price": 1500.0}
     response = client.post("/product", json=product_data)
