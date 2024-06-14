@@ -1,44 +1,43 @@
-from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
+from fastapi.testclient import TestClient
+from app import app
 
-# Configuration details
-MONGO_DB_USERNAME = 'root'
-MONGO_DB_PASSWORD = 'edmon'
-MONGO_DB_HOST = 'mongodb'
-MONGO_DB_PORT = 27017
-MONGO_DB_NAME = 'mydb'
+client = TestClient(app, base_url="http://127.0.0.1:8000")
 
-def test_mongodb_connection():
-    # Initialize MongoDB client
-    client = MongoClient(f"mongodb://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@mongodb")
+def test_create_and_delete_customer():
+    # Create a customer
+    customer_data = {"name": "John", "mail": "john@example.com", "phone": "123456789"}
+    response = client.post("/input", json=customer_data)
+    assert response.status_code == 200
+    assert response.json() == {"message": "Customer created successfully."}
+    
+    # Fetch the created customer's ID
+    response = client.get("/customers")
+    assert response.status_code == 200
+    customers = response.json()
+    customer = next((c for c in customers if c['mail'] == "john@example.com"), None)
+    assert customer is not None
+    customer_id = customer['id']
+    
+    # Delete the customer
+    response = client.delete(f"/customers/{customer_id}")
+    assert response.status_code == 200
+    assert response.json() == {"message": "Customer deleted successfully."}
 
+def test_get_customers():
+    response = client.get("/customers")
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
 
-    db = client[MONGO_DB_NAME]
-
-    # Test inserting a document
-    test_customer = {"name": "Test User", "mail": "test@example.com", "phone": "1234567890"}
-    result = db.customers.insert_one(test_customer)
-    if result.inserted_id is not None:
-        print("Document inserted successfully.")
-    else:
-        print("Failed to insert document.")
-
-    # Test finding the inserted document
-    found_customer = db.customers.find_one({"name": "Test User"})
-    if found_customer is not None:
-        print("Document found successfully.")
-    else:
-        print("Failed to find inserted document.")
-
-    # Test deleting the document
-    delete_result = db.customers.delete_one({"name": "Test User"})
-    if delete_result.deleted_count == 1:
-        print("Document deleted successfully.")
-    else:
-        print("Failed to delete document.")
-
-    # Cleanup
-    client.close()
-
-if __name__ == "__main__":
-    test_mongodb_connection()
+def test_create_and_get_product():
+    # Create a product
+    product_data = {"id": "1", "name": "Laptop", "provider": "ProviderA"}
+    response = client.post("/input_product", json=[product_data])
+    assert response.status_code == 200
+    assert response.json() == {"message": "Products created successfully."}
+    
+    # Fetch the created product
+    response = client.get("/product")
+    assert response.status_code == 200
+    products = response.json()
+    product = next((p for p in products if p['name'] == "Laptop"), None)
+    assert product is not None
