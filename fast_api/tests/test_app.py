@@ -14,7 +14,7 @@ MONGO_DB_USERNAME = 'root'
 MONGO_DB_PASSWORD = 'edmon'
 MONGO_DB_HOST = 'mongodb'
 MONGO_DB_PORT = 27017
-MONGO_DB_NAME = 'mydatabase'
+MONGO_DB_NAME = 'mydb'
 MONGO_DB_NAME_TEST = f"{MONGO_DB_NAME}_test"
 
 # MongoDB client
