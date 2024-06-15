@@ -22,7 +22,7 @@ spec:
 
     environment {
         APP_DIR = 'fast_api'
-        MONGO_URL = 'mongodb://mongdb:27017/mydb'  // MongoDB connection URL
+        MONGO_URL = 'mongodb://mongodb-service.default-namespace:27017/mydb'  // MongoDB connection URL
     }
 
     stages {
