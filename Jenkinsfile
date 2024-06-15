@@ -18,12 +18,6 @@ spec:
     - containerPort: 27017
 """
         }
-    }
-
-    environment {
-        APP_DIR = 'fast_api'
-        MONGO_URL = 'mongodb://mongdb:27017/mydb'  // MongoDB connection URL
-    }
 
     stages {
         stage('Clone Repository') {
