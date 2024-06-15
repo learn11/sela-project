@@ -1,7 +1,9 @@
 
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pymongo import MongoClient
+import pytest
+from fastapi.testclient import TestClient
 
 # === FastAPI Application ===
 
@@ -30,10 +32,29 @@ def create_customer(name: str, mail: str, phone: str):
     })
     return {"message": "Customer created successfully."}
 
-# === Tests ===
+# Endpoint to update customer information
+@app.put("/update")
+def update_customer(mail: str, name: str, phone: str):
+    # Update customer details in MongoDB
+    result = db.customers.update_one(
+        {"mail": mail},
+        {"$set": {"name": name, "phone": phone}}
+    )
+    if result.modified_count == 1:
+        return {"message": "Customer updated successfully."}
+    else:
+        raise HTTPException(status_code=404, detail="Customer not found")
 
-import pytest
-from fastapi.testclient import TestClient
+# New endpoint to get customer details by email
+@app.get("/customer")
+def get_customer_by_email(email: str = Query(...)):
+    customer = db.customers.find_one({"mail": email})
+    if customer:
+        return customer
+    else:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+# === Pytest Fixtures and Tests ===
 
 # FastAPI TestClient
 client = TestClient(app)
@@ -61,10 +82,21 @@ def setup_and_teardown_db(mongo_database):
     mongo_database.customers.delete_many({})
     mongo_database.products.delete_many({})
 
-# Tests
+# Custom test helper to create a customer
+def create_test_customer(client: TestClient, name: str, mail: str, phone: str):
+    return client.post("/input", json={"name": name, "mail": mail, "phone": phone})
 
+# Custom test helper to update a customer
+def update_test_customer(client: TestClient, mail: str, name: str, phone: str):
+    return client.put("/update", json={"mail": mail, "name": name, "phone": phone})
+
+# Custom test helper to retrieve a customer
+def get_test_customer(client: TestClient, email: str):
+    return client.get("/customer", params={"email": email})
+
+# Tests using custom helpers
 def test_create_customer():
-    response = client.post("/input", json={"name": "John Doe", "mail": "john.doe@example.com", "phone": "1234567890"})
+    response = create_test_customer(client, "John Doe", "john.doe@example.com", "1234567890")
     assert response.status_code == 200
     assert response.json() == {"message": "Customer created successfully."}
 
@@ -74,6 +106,17 @@ def test_create_customer():
     assert customer["name"] == "John Doe"
     assert customer["phone"] == "1234567890"
 
-# Running pytest if executed directly
-if __name__ == "__main__":
-    pytest.main()
+def test_update_customer():
+    # Insert a test customer
+    create_test_customer(client, "Jane Smith", "jane.smith@example.com", "9876543210")
+
+    # Test updating customer details
+    response = update_test_customer(client, "jane.smith@example.com", "Jane Doe", "5555555555")
+    assert response.status_code == 200
+    assert response.json() == {"message": "Customer updated successfully."}
+
+    # Verify the customer was updated in the database
+    updated_customer = db.customers.find_one({"mail": "jane.smith@example.com"})
+    assert updated_customer is not None
+    assert updated_customer["name"] == "Jane Doe"
+    assert updated_customer["phone"] == "5555555555"

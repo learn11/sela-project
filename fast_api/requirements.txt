@@ -4,3 +4,4 @@ pydantic
 pymongo
 pytest
 httpx
+pytest-mongodb
