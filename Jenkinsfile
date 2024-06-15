@@ -18,6 +18,7 @@ spec:
     - containerPort: 27017
 """
         }
+    }
 
     stages {
         stage('Clone Repository') {
