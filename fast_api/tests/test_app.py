@@ -17,7 +17,7 @@ MONGO_DB_NAME = 'mydb'
 MONGO_DB_NAME_TEST = f"{MONGO_DB_NAME}_test"
 
 # Get MongoDB connection URL from environment variable
-MONGO_URL = os.getenv("MONGO_URL", f"mongodb://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@{MONGO_DB_HOST}:{MONGO_DB_PORT}/{MONGO_DB_NAME}")
+MONGO_URL = os.getenv("MONGO_URL", 'mongodb://mongodb-service.default-namespace:27017/mydb' )
 
 # MongoDB client
 client = MongoClient(MONGO_URL)
