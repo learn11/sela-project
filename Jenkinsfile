@@ -20,6 +20,10 @@ spec:
         }
     }
 
+    environment {
+        APP_DIR = 'fast_api'
+    }
+
     stages {
         stage('Clone Repository') {
             steps {
