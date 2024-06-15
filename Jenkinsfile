@@ -22,6 +22,7 @@ spec:
 
     environment {
         APP_DIR = 'fast_api'
+        MONGO_URL = 'mongodb://mongo:27017/mydatabase'  // MongoDB connection URL
     }
 
     stages {
@@ -43,11 +44,20 @@ spec:
             }
         }
 
+        stage('Start MongoDB') {
+            steps {
+                container('mongo') {
+                    sh 'echo "MongoDB is ready!"'
+                    // Optionally, you can add more initialization steps if needed
+                }
+            }
+        }
+
         stage('Run Tests') {
             steps {
                 container('python') {
                     dir("${env.APP_DIR}") {
-                        sh 'pytest --junitxml=test-results.xml'
+                        sh "pytest --junitxml=test-results.xml --mongo-url=${env.MONGO_URL}"
                     }
                 }
             }
