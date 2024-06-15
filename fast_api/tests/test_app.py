@@ -1,5 +1,4 @@
-
-
+import os
 from fastapi import FastAPI, HTTPException, Query
 from pymongo import MongoClient
 import pytest
@@ -17,8 +16,11 @@ MONGO_DB_PORT = 27017
 MONGO_DB_NAME = 'mydb'
 MONGO_DB_NAME_TEST = f"{MONGO_DB_NAME}_test"
 
+# Get MongoDB connection URL from environment variable
+MONGO_URL = os.getenv("MONGO_URL", f"mongodb://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@{MONGO_DB_HOST}:{MONGO_DB_PORT}/{MONGO_DB_NAME}")
+
 # MongoDB client
-client = MongoClient(f"mongodb://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@{MONGO_DB_HOST}:{MONGO_DB_PORT}/")
+client = MongoClient(MONGO_URL)
 db = client[MONGO_DB_NAME]
 
 # Sample endpoint to create a customer
@@ -62,7 +64,7 @@ client = TestClient(app)
 # MongoDB Test Configuration
 @pytest.fixture(scope="module")
 def mongo_client():
-    client = MongoClient(f"mongodb://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@{MONGO_DB_HOST}:{MONGO_DB_PORT}/")
+    client = MongoClient(MONGO_URL)
     yield client
 
 @pytest.fixture(scope="module")
@@ -120,3 +122,7 @@ def test_update_customer():
     assert updated_customer is not None
     assert updated_customer["name"] == "Jane Doe"
     assert updated_customer["phone"] == "5555555555"
+
+# Running pytest if executed directly
+if __name__ == "__main__":
+    pytest.main()
