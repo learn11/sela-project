@@ -31,14 +31,7 @@ spec:
     }
 
     stages {
-        stage('Checkout Code') {
-            steps {
-                script {
-                    checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/learn11/sela-project.git']]])
-                }
-            }
-        }
-
+        
         stage('Build docker images') {
             steps {
                 container('ez-docker-helm-build') {
