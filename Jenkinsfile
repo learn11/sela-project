@@ -20,7 +20,7 @@ spec:
   - name: mongodb
     image: mongo:latest
     ports:
-    - containerPort: 27018
+    - containerPort: 27017
                     '''
                     
                     // Apply the deployment to the Kubernetes cluster
@@ -48,8 +48,10 @@ spec:
     
     post {
         always {
-            // Clean up the MongoDB pod after the job completes
-            sh 'kubectl delete pod mongodb'
+            node {
+                // Clean up the MongoDB pod after the job completes
+                sh 'kubectl delete pod mongodb'
+            }
         }
         success {
             echo 'MongoDB pod is running successfully!'
