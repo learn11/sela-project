@@ -1,63 +1,75 @@
 pipeline {
-    agent any
-    
-    environment {
-        KUBECONFIG = credentials('kubeconfig-credentials-id') // Replace with your Jenkins Kubeconfig credentials ID
+    agent {
+        kubernetes {
+            yaml '''
+            apiVersion: v1
+            kind: Pod
+            spec:
+                serviceAccount: jenkins-sa
+                containers:
+                  - name: slave
+                    image: docker:latest
+                    tty: true
+                    securityContext:
+                        privileged: true
+                  - name: pytest
+                    image: mikey8520/tests
+                    tty: true
+                    securityContext:
+                        privileged: true
+                  - name: maven
+                    image: maven:alpine
+                    command:
+                    - cat
+                    tty: true
+            '''
+        }
     }
-    
+
     stages {
-        stage('Deploy MongoDB') {
+        stage('checkout git') {
             steps {
                 script {
-                    // Create a Kubernetes YAML file for MongoDB deployment
-                    writeFile file: 'mongodb-deployment.yaml', text: '''
-apiVersion: v1
-kind: Pod
-metadata:
-  name: mongodb
-spec:
-  containers:
-  - name: mongodb
-    image: mongo:latest
-    ports:
-    - containerPort: 27017
-                    '''
-                    
-                    // Apply the deployment to the Kubernetes cluster
-                    sh 'kubectl apply -f mongodb-deployment.yaml'
+                    checkout scm
                 }
             }
         }
-        
-        stage('Check MongoDB Status') {
-            steps {
-                script {
-                    // Check if the MongoDB pod is running
-                    timeout(time: 3, unit: 'MINUTES') {
-                        waitUntil {
-                            script {
-                                def status = sh(script: "kubectl get pods mongodb -o jsonpath='{.status.phase}'", returnStdout: true).trim()
-                                return status == 'Running'
-                            }
+
+        stage('testing with pytest') {
+            steps{
+                container('pytest') {
+                    script {
+                        sh 'cd ./fast_api && python -m pytest || [[ $? -eq 1 ]]'
+                    }
+                }
+            }
+        }
+        // Build and push with build tag (replace with actual build commands)
+        stage('Build and Push the image with tags') {
+            environment {
+                auth = 'dockerauth'
+            }
+            steps { 
+                container('slave') {
+                    script {
+                        def image = docker.build("edmonp173/project_app", "./fast_api")
+                        withDockerRegistry(credentialsId: 'dockerhub') {
+                            image.push("backend")
                         }
                     }
                 }
             }
         }
     }
-    
     post {
         always {
-            node('master') { // Replace 'master' with the appropriate label for your Jenkins agents
-                // Clean up the MongoDB pod after the job completes
-                sh 'kubectl delete pod mongodb'
-            }
+            echo 'Pipeline POST:'
         }
         success {
-            echo 'MongoDB pod is running successfully!'
+            echo 'Pipeline SUCCESS!'
         }
         failure {
-            echo 'Failed to deploy or verify MongoDB pod!'
+            echo 'Pipeline FAILED, check the logs for more information!'
         }
     }
 }

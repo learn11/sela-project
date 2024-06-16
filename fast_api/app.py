@@ -20,7 +20,7 @@ MONGO_DB_HOST = 'mongodb'
 MONGO_DB_PORT = 27017
 MONGO_DB_NAME = 'mydb'
 
-client = MongoClient(f"mongodb://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@mongodb")
+client = MongoClient(f"mongodb://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@mongo.default.svc.cluster.local:27017")
 db = client[MONGO_DB_NAME]
 
 class Customer(BaseModel):
