@@ -32,7 +32,6 @@ pipeline {
     }
 
     stages {
-
         stage('checkout git') {
             steps {
                 script {
@@ -51,17 +50,27 @@ pipeline {
             }
         }
 
-        stage('Build and Push the image with tags') {
-            environment {
-                auth = 'dockerauth'
-            }
+        stage('Build the image') {
             steps { 
                 container('slave') {
                     script {
-                        def image = docker.build("edmonp173/project_app", "./fast_api")
-                        withDockerRegistry(credentialsId: 'dockerhub') {
-                            image.push("backend")
-                        }
+                        docker.build("edmonp173/project_app", "./fast_api")
+                    }
+                }
+            }
+        }
+
+        stage('Merge to main') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'git', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                        sh '''
+                        git config --global user.email "jenkins@example.com"
+                        git config --global user.name "Jenkins"
+                        git checkout main
+                        git merge feature --no-ff -m "Merge branch 'feature'"
+                        git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/your-repo/your-project.git main
+                        '''
                     }
                 }
             }
