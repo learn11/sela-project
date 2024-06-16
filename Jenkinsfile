@@ -21,11 +21,27 @@ pipeline {
                     command:
                     - cat
                     tty: true
+                  - name: busybox
+                    image: busybox
+                    command:
+                    - sleep
+                    - "3600"
+                    tty: true
             '''
         }
     }
 
     stages {
+        stage('Check DNS') {
+            steps {
+                container('busybox') {
+                    script {
+                        sh 'nslookup github.com'
+                    }
+                }
+            }
+        }
+
         stage('checkout git') {
             steps {
                 script {
@@ -35,7 +51,7 @@ pipeline {
         }
 
         stage('testing with pytest') {
-            steps{
+            steps {
                 container('pytest') {
                     script {
                         sh 'cd ./fast_api && python -m pytest || [[ $? -eq 1 ]]'
@@ -43,7 +59,7 @@ pipeline {
                 }
             }
         }
-        // Build and push with build tag (replace with actual build commands)
+
         stage('Build and Push the image with tags') {
             environment {
                 auth = 'dockerauth'
@@ -60,6 +76,7 @@ pipeline {
             }
         }
     }
+
     post {
         always {
             echo 'Pipeline POST:'
