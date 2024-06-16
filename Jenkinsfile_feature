@@ -44,7 +44,7 @@ pipeline {
             steps {
                 container('pytest') {
                     script {
-                        sh 'cd ./fast_api && python -m pytest || [[ $? -eq 1 ]]'
+                        sh 'cd ./fast_api && python -m pytest'
                     }
                 }
             }
