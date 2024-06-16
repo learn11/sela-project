@@ -48,7 +48,7 @@ spec:
     
     post {
         always {
-            node {
+            node('master') { // Replace 'master' with the appropriate label for your Jenkins agents
                 // Clean up the MongoDB pod after the job completes
                 sh 'kubectl delete pod mongodb'
             }
