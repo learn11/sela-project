@@ -68,7 +68,7 @@ pipeline {
                         git config --global user.email "jenkins@example.com"
                         git config --global user.name "Jenkins"
                         git checkout main
-                        git merge feature --no-ff -m "Merge branch 'feature'"
+                        git merge origin/feature --no-ff -m "Merge branch 'feature'"
                         git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/your-repo/your-project.git main
                         '''
                     }
