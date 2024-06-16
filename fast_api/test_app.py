@@ -1,39 +1,76 @@
+import pytest
 from fastapi.testclient import TestClient
-from app import app
-testclient = TestClient(app)
+from pymongo import MongoClient
+from app import app, Customer, Product  # Assuming your FastAPI app is in main.py
 
+client = TestClient(app)
 
+# Test the GET /customers endpoint
+def test_get_customers():
+    response = client.get("/costumers")
+    assert response.status_code == 200
+    assert isinstance(response.json(), dict)
+    assert "table" in response.json()
 
-def test_list_of_costumers():
-    respose = testclient.get("/costumers")
-    assert respose.status_code == 200
+# Test the GET /product endpoint
+def test_get_products():
+    response = client.get("/product")
+    assert response.status_code == 200
+    assert isinstance(response.json(), dict)
+    assert "table" in response.json()
 
-def test_add_input_page():
-    respose = testclient.get("/input")
-    assert respose.status_code == 200
+# Test the POST /input endpoint
+def test_create_customer():
+    customer = {
+        "name": "John Doe",
+        "mail": "johndoe@example.com",
+        "phone": "1234567890"
+    }
+    response = client.post("/input", json=customer)
+    assert response.status_code == 200
+    assert response.json()["message"] == "Customer created successfully."
 
-def test_add_costumer():
-    form_data = {"name": "testname", "email": "email", "phone": "test number"}
-    respose = testclient.post("/input", data=form_data)
-    assert respose.status_code == 200
+# Test the POST /input_product endpoint
+def test_create_product():
+    products = [
+        {
+            "id": "1",
+            "name": "Product 1",
+            "provider": "Provider 1"
+        },
+        {
+            "id": "2",
+            "name": "Product 2",
+            "provider": "Provider 2"
+        }
+    ]
+    response = client.post("/input_product", json=products)
+    assert response.status_code == 200
+    assert response.json()["message"] == "Products created successfully."
 
-def test_add_product_page():
-    respose = testclient.get("/input_product")
-    assert respose.status_code == 200
+# Test the POST /delete endpoint
+def test_delete_customer():
+    customer = {
+        "name": "John Doe",
+        "mail": "johndoe@example.com",
+        "phone": "1234567890"
+    }
+    response = client.post("/delete", json=customer)
+    assert response.status_code == 200
+    assert response.json()["message"] == "Customer delete successfully."
 
-def test_add_product():
-    form_data = {"id": "test","name": "test", "provider": "test"}
-    respose = testclient.post("/input_product", data=form_data)
-    assert respose.status_code == 200
+# Test the POST /update endpoint
+def test_update_customer():
+    customer = {
+        "name": "John Doe",
+        "mail": "johndoe@example.com",
+        "phone": "0987654321"
+    }
+    response = client.post("/update", json=customer)
+    assert response.status_code == 200
+    assert response.json()["message"] == "Customer updated successfully."
+    assert "updated_customer" in response.json()
 
-
-
-def test_update_costumer_page():
-    respose = testclient.get("/update/company/testcompany")
-    assert respose.status_code == 200
-
-def test_update_costumer():
-    form_data = {"name": "testcompany", "field": "testfield", "manager": "test manager", "phone": "updated test number"}
-    respose = testclient.post("/update/company/testcompany", data=form_data)
-    assert respose.status_code == 200
-
+# Run the tests
+if __name__ == "__main__":
+    pytest.main()
