@@ -32,7 +32,6 @@ pipeline {
     }
 
     stages {
-
         stage('checkout git') {
             steps {
                 script {
@@ -45,23 +44,21 @@ pipeline {
             steps {
                 container('pytest') {
                     script {
-                        sh 'cd ./fast_api && python -m pytest || [[ $? -eq 1 ]]'
+                        sh 'cd ./fast_api && python -m pytest'
                     }
                 }
             }
         }
 
-        stage('Build and Push the image with tags') {
-            environment {
-                auth = 'dockerauth'
-            }
-            steps { 
-                container('slave') {
-                    script {
-                        def image = docker.build("edmonp173/project_app", "./fast_api")
-                        withDockerRegistry(credentialsId: 'dockerhub') {
-                            image.push("backend")
-                        }
+        stage('Merge to main') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'git')]) {
+                        sh '''
+                        git checkout main
+                        git merge origin/feature --no-ff -m "Merge branch 'feature'"
+                        git push -u origin main
+                        '''
                     }
                 }
             }
@@ -69,9 +66,6 @@ pipeline {
     }
 
     post {
-        always {
-            echo 'Pipeline POST:'
-        }
         success {
             echo 'Pipeline SUCCESS!'
         }
