@@ -31,18 +31,25 @@ pipeline {
         }
     }
 
+    environment {
+        GIT_BRANCH = 'main'  // Target branch to merge into
+        GIT_FEATURE_BRANCH = 'origin/feature'  // Branch to merge from
+    }
+
     stages {
-        stage('checkout git') {
+        stage('Checkout Git') {
             steps {
                 script {
+                    // Checkout code from the Git repository
                     checkout scm
                 }
             }
         }
 
-        stage('testing with pytest') {
+        stage('Run Tests with pytest') {
             steps {
                 container('pytest') {
+                    // Run pytest inside the pytest container
                     script {
                         sh 'cd ./fast_api && python -m pytest'
                     }
@@ -50,16 +57,18 @@ pipeline {
             }
         }
 
-        stage('Merge to main') {
+        stage('Merge feature branch to main') {
             steps {
                 script {
+                    // Configure Git user for the merge
                     withCredentials([usernamePassword(credentialsId: 'git')]) {
                         sh '''
                         git config --global user.email "jenkins@example.com"
                         git config --global user.name "Jenkins"
-                        git checkout main
-                        git merge origin/feature --no-ff -m "Merge branch 'feature'"
-                        git push origin main --force
+                        git checkout ${GIT_BRANCH}
+                        git pull origin ${GIT_BRANCH}  // Ensure local branch is up-to-date
+                        git merge ${GIT_FEATURE_BRANCH} --no-ff -m "Merge branch 'feature'"
+                        git push origin ${GIT_BRANCH}
                         '''
                     }
                 }
