@@ -53,7 +53,7 @@ pipeline {
         stage('Merge to main') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'github')]) {
+                    withCredentials([usernamePassword(credentialsId: 'git')]) {
                         sh '''
                         git config --global user.email "jenkins@example.com"
                         git config --global user.name "Jenkins"
