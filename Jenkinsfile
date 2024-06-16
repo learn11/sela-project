@@ -30,14 +30,6 @@ spec:
         DOCKER_IMAGE = "edmonp173/project_app"
     }
 
-    stages {
-        stage('Checkout Code') {
-            steps {
-                script {
-                    checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/learn11/sela-project.git']]])
-                }
-            }
-        }
 
         stage('Build docker images') {
             steps {
@@ -45,7 +37,6 @@ spec:
                     script {
                         // Build Python Docker image
                         sh "docker build -t ${DOCKER_IMAGE}:backend ./fast_api"
-                        sh "docker build -t ${DOCKER_IMAGE}:react1 ./test1"
                     }
                 }
             }
@@ -56,9 +47,7 @@ spec:
                 container('ez-docker-helm-build') {
                     script {
                         withDockerRegistry([credentialsId: 'dockerhub']) {
-                            // Build and Push Docker images
-        
-                            sh "docker push ${DOCKER_IMAGE}:react1"
+                            // Push Docker images
                             sh "docker push ${DOCKER_IMAGE}:backend"
                         }
                     }
