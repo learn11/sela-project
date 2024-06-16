@@ -32,15 +32,7 @@ pipeline {
     }
 
     stages {
-        stage('Check DNS') {
-            steps {
-                container('busybox') {
-                    script {
-                        sh 'nslookup github.com'
-                    }
-                }
-            }
-        }
+
 
         stage('checkout git') {
             steps {
