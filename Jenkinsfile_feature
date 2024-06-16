@@ -31,21 +31,11 @@ pipeline {
         }
     }
 
-    environment {
-        GITHUB_TOKEN = credentials('github') // Assuming you have set the GitHub token as a Jenkins credential with ID 'github'
-    }
-
     stages {
         stage('checkout git') {
             steps {
                 script {
-                    // Checkout the code from the repository using the GitHub token
-                    checkout([$class: 'GitSCM',
-                              branches: [[name: '*/main']],
-                              userRemoteConfigs: [[
-                                  url: 'https://github.com/learn11/sela-project.git',
-                                  credentialsId: 'github'
-                              ]]])
+                    checkout scm
                 }
             }
         }
@@ -53,7 +43,6 @@ pipeline {
         stage('testing with pytest') {
             steps {
                 container('pytest') {
-                    // Run pytest within the pytest container
                     script {
                         sh 'cd ./fast_api && python -m pytest'
                     }
@@ -64,19 +53,14 @@ pipeline {
         stage('Merge to main') {
             steps {
                 script {
-                    // Configure Git user details
-                    sh 'git config --global user.email "jenkins@example.com"'
-                    sh 'git config --global user.name "Jenkins"'
-
-                    // Checkout the main branch
-                    sh 'git checkout main'
-
-                    // Merge the feature branch into main
-                    sh 'git merge origin/feature --no-ff -m "Merge branch '\''feature'\''"'
-
-                    // Push changes to origin main branch using GitHub token
-                    withCredentials([string(credentialsId: 'github_token', variable: 'GITHUB_TOKEN')]) {
-                        sh "git push -u origin main"
+                    withCredentials([usernamePassword(credentialsId: 'github')]) {
+                        sh '''
+                        git config --global user.email "jenkins@example.com"
+                        git config --global user.name "Jenkins"
+                        git checkout main
+                        git merge origin/feature --no-ff -m "Merge branch 'feature'"
+                        git push -u origin main
+                        '''
                     }
                 }
             }
@@ -84,9 +68,6 @@ pipeline {
     }
 
     post {
-        always {
-            echo 'Pipeline POST:'
-        }
         success {
             echo 'Pipeline SUCCESS!'
         }
