@@ -1,62 +1,61 @@
 pipeline {
-    agent {
-        kubernetes {
-            yaml """
+    agent any
+    
+    environment {
+        KUBECONFIG = credentials('kubeconfig-credentials-id') // Replace with your Jenkins Kubeconfig credentials ID
+    }
+    
+    stages {
+        stage('Deploy MongoDB') {
+            steps {
+                script {
+                    // Create a Kubernetes YAML file for MongoDB deployment
+                    writeFile file: 'mongodb-deployment.yaml', text: '''
 apiVersion: v1
 kind: Pod
+metadata:
+  name: mongodb
 spec:
-  serviceAccountName: jenkins
   containers:
-  - name: python
-    image: python:3.9
-    command:
-    - cat
-    tty: true
-  - name: mongo
-    image: mongo:4.2
+  - name: mongodb
+    image: mongo:latest
     ports:
     - containerPort: 27017
-"""
-        }
-    }
-
-    environment {
-        APP_DIR = 'fast_api'
-    }
-
-    stages {
-        stage('Clone Repository') {
-            steps {
-                container('python') {
-                    git url: 'https://github.com/learn11/sela-project.git', branch: 'main'
+                    '''
+                    
+                    // Apply the deployment to the Kubernetes cluster
+                    sh 'kubectl apply -f mongodb-deployment.yaml'
                 }
             }
         }
-
-        stage('Install Dependencies') {
+        
+        stage('Check MongoDB Status') {
             steps {
-                container('python') {
-                    dir("${env.APP_DIR}") {
-                        sh 'pip install -r requirements.txt'
+                script {
+                    // Check if the MongoDB pod is running
+                    timeout(time: 3, unit: 'MINUTES') {
+                        waitUntil {
+                            script {
+                                def status = sh(script: "kubectl get pods mongodb -o jsonpath='{.status.phase}'", returnStdout: true).trim()
+                                return status == 'Running'
+                            }
+                        }
                     }
                 }
             }
         }
-
-        stage('Run Tests') {
-            steps {
-                container('python') {
-                    dir("${env.APP_DIR}") {
-                        sh 'pytest --junitxml=test-results.xml'
-                    }
-                }
-            }
+    }
+    
+    post {
+        always {
+            // Clean up the MongoDB pod after the job completes
+            sh 'kubectl delete pod mongodb'
         }
-
-        stage('Publish Test Results') {
-            steps {
-                junit 'fast_api/test-results.xml'
-            }
+        success {
+            echo 'MongoDB pod is running successfully!'
+        }
+        failure {
+            echo 'Failed to deploy or verify MongoDB pod!'
         }
     }
 }
