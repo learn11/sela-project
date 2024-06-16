@@ -20,7 +20,7 @@ spec:
   - name: mongodb
     image: mongo:latest
     ports:
-    - containerPort: 27017
+    - containerPort: 27018
                     '''
                     
                     // Apply the deployment to the Kubernetes cluster
