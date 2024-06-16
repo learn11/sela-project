@@ -5,7 +5,6 @@ pipeline {
             apiVersion: v1
             kind: Pod
             spec:
-                serviceAccount: jenkins-sa
                 containers:
                   - name: slave
                     image: docker:latest
