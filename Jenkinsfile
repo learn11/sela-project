@@ -5,78 +5,67 @@ pipeline {
             apiVersion: v1
             kind: Pod
             spec:
-                containers:
-                  - name: slave
-                    image: docker:latest
-                    tty: true
-                    securityContext:
-                        privileged: true
-                  - name: pytest
-                    image: mikey8520/tests
-                    tty: true
-                    securityContext:
-                        privileged: true
-                  - name: maven
-                    image: maven:alpine
-                    command:
-                    - cat
-                    tty: true
-                  - name: busybox
-                    image: busybox
-                    command:
-                    - sleep
-                    - "3600"
-                    tty: true
+              containers:
+              - name: maven
+                image: maven:alpine
+                command:
+                - cat
+                tty: true
+              - name: python
+                image: python:3.9-alpine
+                command:
+                - cat
+                tty: true
+              - name: ez-docker-helm-build
+                image: ezezeasy/ez-docker-helm-build:1.41
+                imagePullPolicy: Always
+                securityContext:
+                  privileged: true
             '''
         }
     }
 
-    stages {
+    environment {
+        DOCKER_IMAGE = "edmonp173/project_app"
+    }
 
-        stage('checkout git') {
+    stages {
+        stage('Checkout Code') {
             steps {
                 script {
-                    checkout scm
+                    checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/learn11/sela-project.git']]])
                 }
             }
         }
 
-        stage('testing with pytest') {
+        stage('Build and Run Python Container') {
             steps {
-                container('pytest') {
+                container('ez-docker-helm-build') {
                     script {
-                        sh 'cd ./fast_api && python -m pytest || [[ $? -eq 1 ]]'
+                        // Build Python Docker image
+                        sh "docker build -t ${DOCKER_IMAGE}:backend ./fast_api"
                     }
                 }
             }
         }
 
-        stage('Build and Push the image with tags') {
-            environment {
-                auth = 'dockerauth'
+
+        stage('Build and Push Docker Images') {
+            when {
+                branch 'main'
             }
-            steps { 
-                container('slave') {
+            steps {
+                container('ez-docker-helm-build') {
                     script {
-                        def image = docker.build("edmonp173/project_app", "./fast_api")
                         withDockerRegistry(credentialsId: 'dockerhub') {
-                            image.push("backend")
+                            // Build and Push Maven Docker image
+                            sh "docker build -t ${DOCKER_IMAGE}:react1 ./test1"
+                            sh "docker push ${DOCKER_IMAGE}:react1"
+                            sh "docker push ${DOCKER_IMAGE}:backend"
                         }
                     }
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Pipeline POST:'
-        }
-        success {
-            echo 'Pipeline SUCCESS!'
-        }
-        failure {
-            echo 'Pipeline FAILED, check the logs for more information!'
         }
     }
 }
