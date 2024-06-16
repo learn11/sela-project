@@ -38,7 +38,7 @@ spec:
                     script {
                         // Build Python Docker image
                         sh "docker build -t ${DOCKER_IMAGE}:backend ./fast_api"
-                        sh "docker build -t ${DOCKER_IMAGE}:react1 ./test1"
+                       
                     }
                 }
             }
@@ -50,8 +50,7 @@ spec:
                     script {
                         withDockerRegistry([credentialsId: 'dockerhub']) {
                             // Build and Push Docker images
-        
-                            sh "docker push ${DOCKER_IMAGE}:react1"
+    
                             sh "docker push ${DOCKER_IMAGE}:backend"
                         }
                     }
