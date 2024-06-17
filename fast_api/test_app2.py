@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from pymongo import MongoClient
+
 from app import app, Customer, Product 
 
 client = TestClient(app)
@@ -70,3 +71,4 @@ def test_update_customer():
 
 if __name__ == "__main__":
     pytest.main()
+

@@ -30,13 +30,15 @@ spec:
         DOCKER_IMAGE = "edmonp173/project_app"
     }
 
-
+    stages {
+        
         stage('Build docker images') {
             steps {
                 container('ez-docker-helm-build') {
                     script {
                         // Build Python Docker image
                         sh "docker build -t ${DOCKER_IMAGE}:backend ./fast_api"
+
                     }
                 }
             }
@@ -47,8 +49,7 @@ spec:
                 container('ez-docker-helm-build') {
                     script {
                         withDockerRegistry([credentialsId: 'dockerhub']) {
-                            // Push Docker images
-                            sh "docker push ${DOCKER_IMAGE}:backend"
+              sh "docker push ${DOCKER_IMAGE}:backend"
                         }
                     }
                 }
