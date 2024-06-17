@@ -32,7 +32,7 @@ function DynamicInputComponent() {
         body: JSON.stringify(products.map(product => ({
           id: product.id,
           name: product.name,
-          provider: product.provider // Assuming provider field in React corresponds to phone field in FastAPI
+          provider: product.provider
         })))
       });
 
@@ -50,7 +50,7 @@ function DynamicInputComponent() {
     }
   };
 
-  // JSX rendering
+  
   return (
     <div className={styles.row}>
       <button className={`${styles.btn} ${styles.third}`} onClick={handleAddInputs}>Add product</button>
