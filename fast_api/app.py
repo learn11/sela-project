@@ -55,7 +55,7 @@ def create_customer(customer: Customer):
         db.customers.insert_one(customer.dict())
         return {"message": "Customer created successfully."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Error creating customer")
+        raise HTTPException(status_code=555, detail="Error creating customer")
 
 @app.post("/input_product")
 def create_product(products: list[Product]):
@@ -63,7 +63,7 @@ def create_product(products: list[Product]):
         db.products.insert_many([product.dict() for product in products])
         return {"message": "Products created successfully."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Error creating products")
+        raise HTTPException(status_code=555, detail="Error creating products")
     
 @app.post("/delete")
 def delete_customer(customer: Customer):
@@ -71,7 +71,7 @@ def delete_customer(customer: Customer):
         db.customers.delete_one(customer.dict())
         return {"message": "Customer delete successfully."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Error delete customer")
+        raise HTTPException(status_code=405, detail="Error delete customer")
     
 @app.post("/update")
 def update_customer(customer: Customer):

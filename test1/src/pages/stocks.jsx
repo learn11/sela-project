@@ -2,7 +2,7 @@ import React from "react";
 import Table from "../components/UI/table/table";
 
 const Stock = () => {
-    const httpUrl = 'http://localhost:8000/product'; // Define the HTTP URL here
+    const httpUrl = 'http://localhost:8000/product'; 
 
     return (
         <div>

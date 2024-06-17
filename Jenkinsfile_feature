@@ -50,19 +50,7 @@ pipeline {
             }
         }
 
-        stage('Merge to main') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'git')]) {
-                        sh '''
-                        git checkout main
-                        git merge origin/feature'"
-                        git push -u origin main
-                        '''
-                    }
-                }
-            }
-        }
+
     }
 
     post {

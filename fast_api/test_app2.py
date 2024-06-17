@@ -1,7 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 from pymongo import MongoClient
-from app import app, Customer, Product  # Assuming your FastAPI app is in main.py
+
+from app import app, Customer, Product 
 
 client = TestClient(app)
 
@@ -68,6 +69,6 @@ def test_update_customer():
     assert response.status_code == 500
 
 
-# Run the tests
 if __name__ == "__main__":
     pytest.main()
+

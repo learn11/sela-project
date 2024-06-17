@@ -38,7 +38,7 @@ spec:
                     script {
                         // Build Python Docker image
                         sh "docker build -t ${DOCKER_IMAGE}:backend ./fast_api"
-                       
+
                     }
                 }
             }
@@ -49,9 +49,7 @@ spec:
                 container('ez-docker-helm-build') {
                     script {
                         withDockerRegistry([credentialsId: 'dockerhub']) {
-                            // Build and Push Docker images
-    
-                            sh "docker push ${DOCKER_IMAGE}:backend"
+              sh "docker push ${DOCKER_IMAGE}:backend"
                         }
                     }
                 }
